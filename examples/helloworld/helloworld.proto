@@ -1,0 +1,62 @@
+syntax = "proto3";
+
+option go_package = "google.golang.org/grpc/examples/helloworld/helloworld";
+option java_multiple_files = true;
+option java_package = "io.grpc.examples.helloworld";
+option java_outer_classname = "HelloWorldProto";
+
+package helloworld;
+
+// The greeting service definition.
+service Greeter {
+  // Sends a greeting
+  rpc SayHello (HelloRequest) returns (HelloReply) {}
+  rpc GetVersion (GetVersionReq) returns (GetVersionReply) {}
+
+  rpc ClientStream(stream ClientReq) returns(ClientReply) {}
+}
+
+enum WeekDay {
+  Sunday = 0;
+  Monday = 1;
+  Tuesday = 2;
+  Wednesday = 3;
+  Thursday = 4;
+  Friday = 5;
+  Saturday = 6;
+}
+
+message Student {
+  string name = 1;
+  int32 age = 2;
+}
+
+// The request message containing the user's name.
+message HelloRequest {
+  string name = 1; // 名称
+  int32 age = 2; // 年龄
+  WeekDay day = 3; // 星期
+
+  repeated int32 ss = 4;
+  repeated Student stuList = 10;
+}
+
+// The response message containing the greetings
+message HelloReply {
+  string message = 1;
+}
+
+message GetVersionReq{
+
+}
+message GetVersionReply{
+  string version = 1;
+}
+
+
+message ClientReq{
+  string data = 1;
+}
+message ClientReply{
+
+}
