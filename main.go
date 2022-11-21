@@ -33,12 +33,13 @@ func main() {
 	}
 
 	if port, err := examples.RunHelloServer(); err == nil {
-		serv.AddService("example", "127.0.0.1", port)
+		log.Printf("测试gRPC服务端口: %v", port)
+		// serv.AddService("example", "127.0.0.1", port)
 	}
 
 	cfg := config.GetConfig()
 	for _, service := range cfg.Services {
-		serv.AddService("", service.Host, service.Port)
+		serv.AddService(service.Name, service.Host, service.Port)
 	}
 
 	quitChan := make(chan os.Signal, 2)

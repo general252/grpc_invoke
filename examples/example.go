@@ -2,6 +2,8 @@ package examples
 
 import (
 	"context"
+	"encoding/json"
+	"google.golang.org/grpc/metadata"
 	"log"
 	"net"
 
@@ -14,7 +16,22 @@ type HelloService struct {
 	helloworld.UnimplementedGreeterServer
 }
 
-func (c *HelloService) SayHello(_ context.Context, req *helloworld.HelloRequest) (*helloworld.HelloReply, error) {
+func (c *HelloService) SayHello(ctx context.Context, req *helloworld.HelloRequest) (*helloworld.HelloReply, error) {
+	if md, ok := metadata.FromIncomingContext(ctx); !ok {
+		log.Printf("get metadata error")
+	} else {
+		headerStr, _ := json.MarshalIndent(md, "", "  ")
+		log.Printf(">>>> header: %v", string(headerStr))
+
+		// create and send header
+		header := metadata.Pairs("header-key", "val")
+		_ = grpc.SendHeader(ctx, header)
+
+		// create and set trailer
+		trailer := metadata.Pairs("trailer-key", "val")
+		_ = grpc.SetTrailer(ctx, trailer)
+	}
+
 	resp := &helloworld.HelloReply{
 		Message: "hello " + req.GetName(),
 	}

@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"google.golang.org/grpc/connectivity"
+	"google.golang.org/grpc/metadata"
 	"log"
 
 	"github.com/golang/protobuf/jsonpb"
@@ -110,34 +111,46 @@ func (tis *Stub) Connect(ctx context.Context) error {
 // InvokeRPC grpc调用
 // requestJsonData: proto.Message json
 // return: proto.Message json
-func (tis *Stub) InvokeRPC(ctx context.Context, service, method string, requestJsonData string) (string, error) {
+func (tis *Stub) InvokeRPC(ctx context.Context, service, method string, requestJsonData string, head map[string]string) (res string, header, trailer metadata.MD, err error) {
+
+	// 查找方法
 	objectMethod, ok := tis.server.GetMethod(service, method)
 	if !ok {
-		return "", fmt.Errorf("not found [%v:%v]", service, method)
+		return "", nil, nil, fmt.Errorf("not found [%v:%v]", service, method)
 	}
 	mtd := objectMethod.GetMethodDescriptor()
 
+	// 构建request
 	var req = tis.msgFactory.NewMessage(mtd.GetInputType())
 	if err := jsonpb.Unmarshal(bytes.NewBufferString(requestJsonData), req); err != nil {
-		return "", err
+		return "", nil, nil, err
+	}
+
+	if len(head) > 0 {
+		ctx = metadata.NewOutgoingContext(ctx, metadata.New(head))
 	}
 
 	stub := grpcdynamic.NewStubWithMessageFactory(tis.conn, tis.msgFactory)
-	resp, err := stub.InvokeRpc(ctx, mtd, req)
+
+	// 执行调用
+	resp, err := stub.InvokeRpc(ctx, mtd, req, grpc.Header(&header), grpc.Trailer(&trailer))
 	if err != nil {
-		return "", err
+		// 错误
+		return "", nil, nil, err
 	} else if false {
+		// 测试
 		dm := resp.(*dynamic.Message)
 		fd := dm.GetMessageDescriptor().FindFieldByName("message")
 		_ = dm.GetField(fd)
 	}
 
+	// 格式化回复的数据
 	respStr, err := new(jsonpb.Marshaler).MarshalToString(resp)
 	if err != nil {
-		return "", err
+		return "", nil, nil, err
 	}
 
-	return respStr, nil
+	return respStr, header, trailer, nil
 }
 
 func (tis *Stub) GetObjectFileSymbol() map[string]*ObjectFileDescriptor {

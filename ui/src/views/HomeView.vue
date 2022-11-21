@@ -18,13 +18,28 @@
     <el-tab-pane label="请求" name="tabItemReq">
 
       <!-- json-editer -->
-      <div id="editor_holder" style="background-color: rgba(250, 250, 250, 0.5)"></div>
+      <div id="editor_request" style="background-color: rgba(250, 250, 250, 0.5)"></div>
 
     </el-tab-pane>
+
+    <el-tab-pane label="请求Header" name="tabItemReqHead">
+
+      <!-- json-editer -->
+      <div id="editor_request_header" style="background-color: rgba(250, 250, 250, 0.5)"></div>
+
+    </el-tab-pane>
+
     <el-tab-pane label="回复" name="tabItemRes">
 
       <!-- json-viewer -->
       <json-viewer :value="jsonData" :expand-depth="5" copyable boxed sort expanded="true"></json-viewer>
+
+    </el-tab-pane>
+
+    <el-tab-pane label="回复Header" name="tabItemResHeader">
+
+      <!-- json-viewer -->
+      <json-viewer :value="jsonRpcData" :expand-depth="5" copyable boxed sort expanded="true"></json-viewer>
 
     </el-tab-pane>
   </el-tabs>
@@ -59,7 +74,9 @@ export default {
 
       tabSelect: "tabItemReq",
 
-      jsonEditor: null,
+      jsonEditorRequest: null,
+      jsonEditorRequestHeader: null,
+      jsonRpcData: {},
       jsonData: {},
     };
   },
@@ -98,7 +115,7 @@ export default {
         return;
       }
 
-      if (this.serviceChange.length > 0 && this.methodValue.length > 0) {
+      if (this.serviceValue.length > 0 && this.methodValue.length > 0) {
         let pThis = this;
 
         axios
@@ -108,13 +125,13 @@ export default {
 
             console.log(response.data);
 
-            if (pThis.jsonEditor) {
-              pThis.jsonEditor.destroy();
-              pThis.jsonEditor = null;
+            if (pThis.jsonEditorRequest) {
+              pThis.jsonEditorRequest.destroy();
+              pThis.jsonEditorRequest = null;
             }
             // Initialize the editor
-            let dom = document.getElementById("editor_holder")
-            pThis.jsonEditor = new window.JSONEditor(
+            let dom = document.getElementById("editor_request")
+            pThis.jsonEditorRequest = new window.JSONEditor(
               dom,
               {
                 schema: response.data,
@@ -127,6 +144,12 @@ export default {
           })
           .catch(function (error) {
             console.log(error);
+            ElNotification({
+              title: "Warning",
+              message: JSON.stringify(error.response.data.error, null, 2),
+              type: "warning",
+              position: "bottom-right",
+            });
           })
           .then(function () {
             // 总是会执行
@@ -138,11 +161,11 @@ export default {
       this.jsonData = '{}'
     },
     invoke() {
-      if (typeof this.jsonEditor == "undefined") {
+      if (typeof this.jsonEditorRequest == "undefined") {
         return;
       }
 
-      var validation_errors = this.jsonEditor.validate();
+      var validation_errors = this.jsonEditorRequest.validate();
       // Show validation errors if there are any
       if (validation_errors.length) {
         ElNotification({
@@ -154,9 +177,14 @@ export default {
         return;
       }
 
-      let json = this.jsonEditor.getValue();
+      let payload = this.jsonEditorRequest.getValue();
+      let header = this.jsonEditorRequestHeader.getValue();
+      // let value = JSON.stringify(payload, null, 2);
 
-      let value = JSON.stringify(json, null, 2);
+      let headerMap = new Map()
+      header.forEach(element => {
+        headerMap[element.key] = element.value
+      });
 
       /////////////////////////////////////////////////////////////////////////////////////////
       if (
@@ -166,23 +194,31 @@ export default {
         return;
       }
 
-      if (this.serviceChange.length > 0 && this.methodValue.length > 0) {
+      if (this.serviceValue.length > 0 && this.methodValue.length > 0) {
         let pThis = this;
 
         axios
-          .post(`/rpc/invoke/${this.serviceValue}/${this.methodValue}`, json)
+          .post(`/rpc/invoke/${this.serviceValue}/${this.methodValue}`, {
+            header: headerMap,
+            data: payload,
+          })
           .then(function (response) {
             // console.log(response.data);
+            let result = response.data;
 
             pThis.tabSelect = "tabItemRes"
 
-            pThis.jsonData = response.data;
+            pThis.jsonRpcData = {
+              header: result.header,
+              trailer: result.trailer,
+            }
+            pThis.jsonData = result.data;
           })
           .catch(function (error) {
             console.log(error);
             ElNotification({
               title: "Warning",
-              message: JSON.stringify(error.response.data, null, 2),
+              message: JSON.stringify(error.response.data.error, null, 2),
               type: "warning",
               position: "bottom-right",
             });
@@ -195,6 +231,30 @@ export default {
   },
 
   mounted() {
+    let jsonSchema = JSON.parse(`{
+        "type": "array",
+        "title": "header",
+        "items": {
+          "type": "object",
+          "title": "key/value",
+          "properties": {
+            "key": {
+              "type": "string"
+            },
+            "value": {
+              "type": "string"
+            }
+          }
+        }
+    }`);
+    this.jsonEditorRequestHeader = new window.JSONEditor(
+      document.getElementById("editor_request_header"),
+      {
+        schema: jsonSchema,
+        compact: true,
+      }
+    );
+
     this.getServiceList();
   },
 };
