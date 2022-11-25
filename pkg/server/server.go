@@ -150,9 +150,13 @@ func (tis *HttpServer) routerMethodJsonSchema(c *gin.Context) {
 
 	for _, cli := range clients {
 		if objectMethod, ok := cli.GetServerInfo().GetMethod(serviceName, methodName); ok {
-			schema := objectMethod.GetRequestJsonSchema()
+			inSchema := objectMethod.GetRequestJsonSchema()
+			outSchema := objectMethod.GetResponseJsonSchema()
 
-			c.JSON(http.StatusOK, schema)
+			c.JSON(http.StatusOK, gin.H{
+				"input":  inSchema,
+				"output": outSchema,
+			})
 			return
 		}
 	}

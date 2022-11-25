@@ -49,6 +49,14 @@ func (tis *JsonMethod) GetRequestJsonSchema() *schema.JsonSchema {
 	return result
 }
 
+func (tis *JsonMethod) GetResponseJsonSchema() *schema.JsonSchema {
+	outType := tis.mtd.GetOutputType()
+
+	result := MessageToSchema(outType, true)
+
+	return result
+}
+
 func MessageToSchema(msg *desc.MessageDescriptor, root bool) *schema.JsonSchema {
 
 	var result = &schema.JsonSchema{

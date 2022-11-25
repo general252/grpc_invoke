@@ -1,11 +1,30 @@
 <template>
-  <el-select v-model="serviceValue" placeholder="服务" @change="serviceChange" filterable="true">
-    <el-option v-for="item in services" :key="item.service_name" :label="item.service_name"
-      :value="item.service_name" />
+  <el-select
+    v-model="serviceValue"
+    placeholder="服务"
+    @change="serviceChange"
+    filterable="true"
+  >
+    <el-option
+      v-for="item in services"
+      :key="item.service_name"
+      :label="item.service_name"
+      :value="item.service_name"
+    />
   </el-select>
 
-  <el-select v-model="methodValue" placeholder="方法" @change="methodChange" filterable="true">
-    <el-option v-for="item in methods" :key="item.method_name" :label="item.method_name" :value="item.method_name" />
+  <el-select
+    v-model="methodValue"
+    placeholder="方法"
+    @change="methodChange"
+    filterable="true"
+  >
+    <el-option
+      v-for="item in methods"
+      :key="item.method_name"
+      :label="item.method_name"
+      :value="item.method_name"
+    />
   </el-select>
 
   <el-button type="primary" @click="invoke">提交</el-button>
@@ -13,37 +32,43 @@
   <br />
   <br />
 
-
   <el-tabs type="border-card" v-model="tabSelect">
     <el-tab-pane label="请求" name="tabItemReq">
-
       <!-- json-editer -->
-      <div id="editor_request" style="background-color: rgba(250, 250, 250, 0.5)"></div>
-
+      <div
+        id="editor_request"
+        style="background-color: rgba(250, 250, 250, 0.5)"
+      ></div>
     </el-tab-pane>
 
     <el-tab-pane label="请求Header" name="tabItemReqHead">
-
       <!-- json-editer -->
-      <div id="editor_request_header" style="background-color: rgba(250, 250, 250, 0.5)"></div>
-
+      <div
+        id="editor_request_header"
+        style="background-color: rgba(250, 250, 250, 0.5)"
+      ></div>
     </el-tab-pane>
 
     <el-tab-pane label="回复" name="tabItemRes">
-
       <!-- json-viewer -->
-      <json-viewer :value="jsonData" :expand-depth="5" copyable boxed sort expanded="true"></json-viewer>
-
+      <div
+        id="editor_response"
+        style="background-color: rgba(250, 250, 250, 0.5)"
+      ></div>
     </el-tab-pane>
 
     <el-tab-pane label="回复Header" name="tabItemResHeader">
-
       <!-- json-viewer -->
-      <json-viewer :value="jsonRpcData" :expand-depth="5" copyable boxed sort expanded="true"></json-viewer>
-
+      <json-viewer
+        :value="jsonRpcData"
+        :expand-depth="5"
+        copyable
+        boxed
+        sort
+        expanded="true"
+      ></json-viewer>
     </el-tab-pane>
   </el-tabs>
-
 </template>
 
 <script>
@@ -76,8 +101,8 @@ export default {
 
       jsonEditorRequest: null,
       jsonEditorRequestHeader: null,
+      jsonEditorResponse: null,
       jsonRpcData: {},
-      jsonData: {},
     };
   },
 
@@ -125,22 +150,27 @@ export default {
 
             console.log(response.data);
 
-            if (pThis.jsonEditorRequest) {
-              pThis.jsonEditorRequest.destroy();
-              pThis.jsonEditorRequest = null;
-            }
-            // Initialize the editor
-            let dom = document.getElementById("editor_request")
-            pThis.jsonEditorRequest = new window.JSONEditor(
-              dom,
-              {
-                schema: response.data,
-                max_depth: 0,
-                compact: true,
-              }
-            );
+            pThis.jsonEditorRequest?.destroy();
+            pThis.jsonEditorResponse?.destroy();
 
-            pThis.tabSelect = "tabItemReq"
+            // Initialize the editor
+            let dom = document.getElementById("editor_request");
+            pThis.jsonEditorRequest = new window.JSONEditor(dom, {
+              schema: response.data.input,
+              max_depth: 0,
+              compact: true,
+            });
+            dom = document.getElementById("editor_response");
+            pThis.jsonEditorResponse = new window.JSONEditor(dom, {
+              schema: response.data.output,
+              max_depth: 0,
+              compact: true,
+            });
+            pThis.jsonEditorResponse.on("ready", () => {
+              pThis.jsonEditorResponse.disable();
+            });
+
+            pThis.tabSelect = "tabItemReq";
           })
           .catch(function (error) {
             console.log(error);
@@ -158,7 +188,7 @@ export default {
     },
 
     cleanResponse() {
-      this.jsonData = '{}'
+      
     },
     invoke() {
       if (typeof this.jsonEditorRequest == "undefined") {
@@ -181,9 +211,9 @@ export default {
       let header = this.jsonEditorRequestHeader.getValue();
       // let value = JSON.stringify(payload, null, 2);
 
-      let headerMap = new Map()
-      header.forEach(element => {
-        headerMap[element.key] = element.value
+      let headerMap = new Map();
+      header.forEach((element) => {
+        headerMap[element.key] = element.value;
       });
 
       /////////////////////////////////////////////////////////////////////////////////////////
@@ -206,13 +236,13 @@ export default {
             // console.log(response.data);
             let result = response.data;
 
-            pThis.tabSelect = "tabItemRes"
+            pThis.tabSelect = "tabItemRes";
 
             pThis.jsonRpcData = {
               header: result.header,
               trailer: result.trailer,
-            }
-            pThis.jsonData = result.data;
+            };
+            pThis.setValue(result.data);
           })
           .catch(function (error) {
             console.log(error);
@@ -260,10 +290,8 @@ export default {
 };
 </script>
 
-
 <style>
 .el-tabs__content {
   min-height: 700px;
-  ;
 }
 </style>
