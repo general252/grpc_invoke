@@ -14,7 +14,7 @@ export default defineConfig({
   server: {
     proxy: {
       "/rpc": {
-        target: "http://localhost:8888",
+        target: "http://localhost:9999",
         changeOrigin: true,
       },
     },

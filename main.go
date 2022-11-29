@@ -2,6 +2,9 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
+	"fmt"
+	"github.com/general252/grpc_invoke/pkg/browsers"
 	"io"
 	"log"
 	"net/http"
@@ -22,13 +25,17 @@ func init() {
 }
 
 func main() {
+	var port = flag.Int("port", 8888, "listen port")
+	flag.Parse()
+
 	serv := server.NewHttpServer()
-	go serv.Server(8888)
+	go serv.Server(*port)
 	defer serv.Close()
 
 	if address := traefilServices(); address != nil {
 		for _, addr := range address {
-			serv.AddService(addr.Name, addr.Host, addr.Port)
+			//serv.AddService(addr.Name, addr.Host, addr.Port)
+			_ = serv.AddService(addr.Name, "127.0.0.1", addr.Port)
 		}
 	}
 
@@ -39,8 +46,15 @@ func main() {
 
 	cfg := config.GetConfig()
 	for _, service := range cfg.Services {
-		serv.AddService(service.Name, service.Host, service.Port)
+		_ = serv.AddService(service.Name, service.Host, service.Port)
 	}
+
+	go func() {
+		uri := fmt.Sprintf("http://127.0.0.1:%v", *port)
+		if err := browsers.Open(uri); err != nil {
+			log.Println(err)
+		}
+	}()
 
 	quitChan := make(chan os.Signal, 2)
 	signal.Notify(quitChan, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)

@@ -70,6 +70,10 @@ func MessageToSchema(msg *desc.MessageDescriptor, root bool) *schema.JsonSchema 
 	}
 
 	var getDescriptor = func(field *desc.FieldDescriptor) string {
+		if true {
+			return ""
+		}
+
 		// return fmt.Sprintf("%v(%v)", field.GetFullyQualifiedName(), field.GetType().String())
 		v := field.GetType().String()
 		if strings.HasPrefix(v, "TYPE_") {
