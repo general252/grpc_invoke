@@ -14,6 +14,8 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"net/http/httputil"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -116,6 +118,8 @@ func (tis *HttpServer) router() {
 	swaggerApi.GET("/services", tis.swServices)
 	swaggerApi.GET("/jsonSchema/:ServiceName/:MethodName", tis.swServicesJsonSchema)
 	swaggerApi.POST("/invoke/:ServiceName/:MethodName", tis.swRouterInvoke)
+
+	tis.r.Any("/http/*ProxyPath", tis.httpProxy)
 }
 
 type JsonAddServiceRequest struct {
@@ -367,7 +371,7 @@ func (tis *HttpServer) loadSwaggerFile() {
 
 	var swaggerFiles []string
 	_ = filepath.Walk(swaggerDir, func(path string, info fs.FileInfo, err error) error {
-		if info.IsDir() {
+		if info == nil || info.IsDir() {
 			return nil
 		}
 
@@ -394,4 +398,26 @@ func (tis *HttpServer) loadSwaggerFile() {
 
 		tis.apis = append(tis.apis, api)
 	}
+}
+
+const ProxyAddr = "http://127.0.0.1:9780"
+
+func (tis *HttpServer) httpProxy(c *gin.Context) {
+	remote, err := url.Parse(ProxyAddr)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+	}
+
+	proxy := httputil.NewSingleHostReverseProxy(remote)
+	proxy.Director = func(req *http.Request) {
+		req.Header = c.Request.Header
+		req.Host = remote.Host
+		req.URL.Scheme = remote.Scheme
+		req.URL.Host = remote.Host
+		req.URL.Path = c.Param("ProxyPath")
+	}
+
+	proxy.ServeHTTP(c.Writer, c.Request)
 }
