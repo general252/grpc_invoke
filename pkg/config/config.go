@@ -22,7 +22,7 @@ type config struct {
 }
 
 func newConfig() *config {
-	dir, _ := getExeDir()
+	dir, _ := GetExeDir()
 	filename := fmt.Sprintf("%v/config.json", dir)
 
 	tis := &config{
@@ -54,7 +54,7 @@ func (tis *config) Storage() {
 	_ = os.WriteFile(tis.filename, data, os.ModePerm)
 }
 
-func getExeDir() (string, error) {
+func GetExeDir() (string, error) {
 	dir := filepath.Dir(os.Args[0])
 	absDir, err := filepath.Abs(dir)
 
